@@ -22,7 +22,7 @@ def read_item(item_id: int):
 
 @app.post("/fft")
 def fftAsAService(signal:SensorInput):
-    fs = 44  # frecuencia de muestreo
+    fs = 20  
     accSignalX = [reading.y for reading in signal.accelerometer]
     accSignalX = np.array(accSignalX)-np.mean(accSignalX)
     spectrum = fft(accSignalX)
@@ -30,23 +30,31 @@ def fftAsAService(signal:SensorInput):
     half_spectrum = np.abs(spectrum[:len(spectrum) // 2])
     half_freqs = freqs[:len(freqs) // 2]
 
-    ##Frecuencia dominante
-    dominant_index = np.argmax(half_spectrum)
-    dominant_frequency = half_freqs[dominant_index]
+   
+    dominant_idx = np.argmax(half_spectrum)  # Índice del pico máximo
+    dominant_frequency = half_freqs[dominant_idx]
+    dominant_amplitude = half_spectrum[dominant_idx]
+
+    min_frequency_threshold = 1  # Hz
+    filtered_spectrum = half_spectrum[half_freqs > min_frequency_threshold]
+    filtered_freqs = half_freqs[half_freqs > min_frequency_threshold]
+    filtered_dominant_idx = np.argmax(filtered_spectrum)
+    filtered_dominant_frequency = filtered_freqs[filtered_dominant_idx]
+
     spectral_entropy = compute_spectral_entropy(half_spectrum)
 
-    return {"frequency":freqs.tolist(), "spectrum":half_spectrum.tolist(), "domain":dominant_frequency, "entropy": spectral_entropy}
+    return {"frequency":freqs.tolist(), "spectrum":half_spectrum.tolist(), "domain":dominant_frequency, 
+            "entropy": spectral_entropy, "filtered": filtered_dominant_frequency}
 
-#Sacar fft y sacar las freqs
+
 
 def compute_spectral_entropy(spectrum):
-    # Espectro de potencia
+  
     power_spectrum = spectrum ** 2
     
-    # Normalizar el espectro de potencias
+ 
     normalized_spectrum = power_spectrum / np.sum(power_spectrum)
     
-    # Calcular la entropía
+   
     entropy = -np.sum(normalized_spectrum * np.log2(normalized_spectrum + 1e-12))  # Evitar log(0)
     return entropy
-
